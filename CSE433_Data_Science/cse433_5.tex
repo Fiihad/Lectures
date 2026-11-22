@@ -8,9 +8,11 @@
 %          language, custom commands, and the Lecture 3 code panels.
 %
 %  Data:   every output shown was produced by running the commands on
-%          class.csv (14 students, delivered next to this file) with
-%          pandas + scikit-learn. The train/test split uses
-%          random_state=6, so the results reproduce exactly.
+%          students_clean.csv (80 students from Lecture 3) with
+%          pandas + scikit-learn. Task is regression: predict CGPA from
+%          StudyHours and Attendance. The train/test split uses
+%          random_state=6 and the tree is depth 3, so results reproduce
+%          exactly.
 %
 %  Compile:  pdflatex cse433_5.tex   (run twice)
 %
@@ -177,7 +179,7 @@
 \tikzset{
   code/.style={rounded corners=1.5pt, fill=ink, draw=ink, line width=0.4pt,
     text=paper, align=left, inner sep=7pt, font=\ttfamily\footnotesize},
-  out/.style={card, align=left, inner sep=7pt, font=\ttfamily\footnotesize},
+  output/.style={card, align=left, inner sep=7pt, font=\ttfamily\footnotesize},
 }
 
 % inline code
@@ -241,24 +243,24 @@
       \fill[paper!75] (2.3,1.05) circle (0.10);
       \draw[paper!22, line width=0.6pt] (0.5,0.9) -- (0.5,0.35);
       \draw[paper!22, line width=0.6pt] (2.3,0.9) -- (2.3,0.35);
-      \node[font=\scriptsize, text=paper!60] at (0.5,0.15) {Fail};
-      \node[font=\scriptsize, text=paper!60] at (2.3,0.15) {Pass};
+      \node[font=\scriptsize, text=paper!60] at (0.5,0.15) {2.4};
+      \node[font=\scriptsize, text=paper!60] at (2.3,0.15) {3.5};
     \end{scope}
   \end{tikzpicture}
 
   \vfill
-  \hspace{0.7cm}%
-  \begin{minipage}{10.6cm}
+  \hspace{0.6cm}%
+  \begin{minipage}{11.4cm}
     \vspace{2.5em}
     {\sffamily\fontsize{8}{10}\selectfont\color{terra}\lsstyle
      AN INTRODUCTION FOR UNDERGRADUATES}\\[0.75em]
-    {\rmfamily\fontsize{44}{50}\selectfont\color{paper} Making Predictions}\\[0.45em]
+    {\rmfamily\fontsize{36}{42}\selectfont\color{paper} Making Predictions}\\[0.45em]
     \begin{tikzpicture}
       \fill[terra] (0,0) rectangle (1.5cm,1.6pt);
       \fill[paper!25] (1.5cm,0.4pt) rectangle (9.0cm,1.2pt);
     \end{tikzpicture}\\[0.6em]
     \vspace{2.3em}
-    {\rmfamily\fontsize{18}{22}\selectfont\color{paper!75}
+    {\rmfamily\fontsize{15}{19}\selectfont\color{paper!75}
      Lecture 5 \;---\; A First Machine-Learning Model}\\[3.2em]
     {\sffamily\fontsize{11}{14}\selectfont\color{paper!85}
      Md.\ Owaliur Rahman}\\[0.25em]
@@ -330,17 +332,17 @@
 \begin{frame}{The question from day one}
   \vspace{0.5em}
   \statement[12.4cm]{\fontsize{18}{24}\selectfont
-    A university wants to spot students who\\
-    \textbf{may struggle} --- early enough to help.}
+    From study hours and attendance,\\
+    can we \textbf{estimate a student's CGPA} --- early enough to help?}
   \vspace{1.0em}
   \begin{center}
   \begin{tikzpicture}[node distance=0.9cm]
     \node[card, minimum width=3.0cm, minimum height=1.1cm] (known)
-      {Students we \textbf{know}\\ {\footnotesize passed or failed}};
+      {Students we \textbf{know}\\ {\footnotesize with CGPA on record}};
     \node[warm, right=of known, minimum width=2.6cm, minimum height=1.1cm]
       (learn) {find the\\ pattern};
     \node[solid, right=of learn, minimum width=3.0cm, minimum height=1.1cm]
-      (new) {guess for a\\ \textbf{new} student};
+      (new) {guess a CGPA for a\\ \textbf{new} student};
     \draw[flow] (known) -- (learn);
     \draw[flow] (learn) -- (new);
   \end{tikzpicture}
@@ -367,12 +369,12 @@
   \begin{center}
   \fitin{13.8cm}{3.4cm}{%
   \begin{tikzpicture}[node distance=0.8cm]
-    \node[card, text width=4.0cm, minimum height=1.9cm, align=left] (a)
+    \node[card, text width=4.6cm, minimum height=1.9cm, align=left] (a)
       {{\rmfamily\bfseries An experienced teacher}\\[4pt]
        {\color{stone}\footnotesize has seen hundreds of students\\
         can often tell in week 3\\ who may struggle}};
     \node[font=\Large, text=stone, right=0.6cm of a] (eq) {$\approx$};
-    \node[soft, text width=4.0cm, minimum height=1.9cm, align=left,
+    \node[soft, text width=4.6cm, minimum height=1.9cm, align=left,
           right=0.6cm of eq] (b)
       {{\rmfamily\bfseries A model}\\[4pt]
        {\color{stone}\footnotesize has seen many past students\\
@@ -410,49 +412,47 @@
       \begin{center}
       \fitin{5.9cm}{5.0cm}{%
         \clsize
-        \begin{tabular}{rlrr>{\columncolor{ink!4}}l}
+        \begin{tabular}{rlrr>{\columncolor{ink!4}}r}
           \arrayrulecolor{terra}\toprule
-          & \textbf{Name} & \textbf{Study} & \textbf{Att.} & \textbf{Result}\\
+          & \textbf{Name} & \textbf{Study} & \textbf{Att.} & \textbf{CGPA}\\
           \arrayrulecolor{ink!20}\midrule
-          \ix{0}  & Ayesha  & 2 & 60 & \fail\\
-          \ix{1}  & Rahim   & 5 & 80 & \pass\\
-          \ix{2}  & Nusrat  & 7 & 90 & \pass\\
-          \ix{3}  & Tanvir  & 4 & 80 & \pass\\
-          \ix{4}  & Imran   & 3 & 70 & \fail\\
-          \ix{5}  & Mitu    & 8 & 95 & \pass\\
-          \ix{6}  & Karim   & 1 & 55 & \fail\\
-          \ix{7}  & Lima    & 6 & 85 & \pass\\
-          \ix{8}  & Rafi    & 2 & 65 & \fail\\
-          \ix{9}  & Mou     & 9 & 92 & \pass\\
-          \ix{10} & Sabbir  & 4 & 60 & \fail\\
-          \ix{11} & Nabila  & 7 & 88 & \pass\\
-          \ix{12} & Fahim   & 8 & 90 & \fail\\
-          \ix{13} & Oishi   & 3 & 85 & \pass\\
+          \ix{0}  & Zahid    & 6 & 83 & 3.21\\
+          \ix{1}  & Antara J.& 2 & 59 & 2.57\\
+          \ix{2}  & Mitu     & 8 & 78 & 3.53\\
+          \ix{3}  & Lamia    & 7 & 73 & 3.24\\
+          \ix{4}  & Antara B.& 3 & 73 & 2.77\\
+          \ix{5}  & Tasnim   & 7 & 81 & 3.47\\
+          \ix{6}  & Mehedi   & 7 & 90 & 3.27\\
+          \ix{7}  & Tahmina  & 2 & 53 & 2.37\\
+          \multicolumn{5}{c}{\color{stone}\footnotesize $\vdots$\ \ 72 more rows}\\
+          \ix{79} & Tamanna U.& 5 & 75 & 3.16\\
           \bottomrule
         \end{tabular}}
       \end{center}
     \end{column}
     \begin{column}{6.8cm}
+      \fitin{6.8cm}{3.6cm}{%
       \begin{tikzpicture}[node distance=0.4cm]
         \node[card, minimum width=3.2cm] (f1) {Study hours};
         \node[card, below=of f1, minimum width=3.2cm] (f2) {Attendance};
         \node[warm, right=1.2cm of $(f1)!0.5!(f2)$, minimum width=2.3cm,
               minimum height=1.1cm] (t) {PREDICT};
         \node[solid, right=1.1cm of t, minimum width=2.4cm, minimum height=1.1cm]
-          (tg) {Result};
+          (tg) {CGPA};
         \foreach \n in {f1,f2} \draw[flow] (\n.east) -- (t.west);
         \draw[flow] (t) -- (tg);
         \node[tag, below=0.25cm of f2] {FEATURES (inputs)};
         \node[tag, below=0.25cm of tg] {TARGET};
-      \end{tikzpicture}
+      \end{tikzpicture}}
       \vspace{0.6em}
       \begin{center}
       \begin{minipage}{6.4cm}
         {\footnotesize\color{ink}
          The \textbf{features} are what we feed in.\\
          The \textbf{target} is what we predict.\\[4pt]
-         {\color{stone}A bigger, cleaned class of 14 --- too small to trust,
-          big enough to see every step.}}
+         {\color{stone}80 cleaned students from Lecture 3.
+          CGPA is a \textbf{number} (2.26--3.74),
+          so this is a \textbf{regression} problem --- not Pass/Fail.}}
       \end{minipage}
       \end{center}
     \end{column}
@@ -460,12 +460,16 @@
   \note{%
     Reuse the exact words from Lecture 2: features are the input columns,
     the target is the column we want to predict. Here features are Study hours
-    and Attendance; the target is Result (Pass/Fail).\\
+    and Attendance; the target is CGPA --- a number, not a yes/no.\\
+    That makes this a \emph{regression} problem (predicting a continuous value),
+    as opposed to classification (predicting a category like Pass/Fail). The
+    recipe is almost identical --- just a different model class and a different
+    score.\\
     Note we need a target that is already filled in for past students --- that is
-    how the model learns. You cannot learn to predict pass/fail from students
-    whose result you never recorded.\\
-    Be honest about the data: 14 students is still tiny (Lecture 1: five students
-    prove nothing). We use 14 so the whole thing fits on screen. Real models
+    how the model learns. You cannot learn to predict CGPA from students
+    whose CGPA you never recorded.\\
+    Be honest about the data: 80 students is still small (Lecture 1: five students
+    prove nothing). It is enough to show every step honestly, but real models
     learn from thousands. Everything we do would be identical at that scale.}
 \end{frame}
 
@@ -479,11 +483,11 @@
   \fitin{13.8cm}{3.6cm}{%
   \begin{tikzpicture}[node distance=0.9cm]
     \node[card, minimum width=3.0cm, minimum height=1.2cm] (all)
-      {All 14 students};
+      {All 80 students};
     \node[soft, right=1.4cm of all, minimum width=3.6cm, minimum height=1.2cm]
-      (tr) {{\rmfamily\bfseries Training set}\\ {\footnotesize 9 students --- learn from these}};
+      (tr) {{\rmfamily\bfseries Training set}\\ {\footnotesize 56 students --- learn from these}};
     \node[warm, below=0.5cm of tr, minimum width=3.6cm, minimum height=1.2cm]
-      (te) {{\rmfamily\bfseries Test set}\\ {\footnotesize 5 students --- hidden, to check}};
+      (te) {{\rmfamily\bfseries Test set}\\ {\footnotesize 24 students --- hidden, to check}};
     \draw[flow] (all.east) -- ++(0.5,0) |- (tr.west);
     \draw[flow] (all.east) -- ++(0.5,0) |- (te.west);
     \node[tag, right=0.5cm of tr, text width=3.0cm] {the model studies these};
@@ -504,7 +508,7 @@
     course it looks perfect --- it memorised them. So we hide some students (the
     test set), train on the rest, then check the model on the hidden ones. That
     is the only honest way to ask ``did it actually learn?''\\
-    We will hide 5 of our 14 and train on 9.}
+    We will hide 24 of our 80 and train on 56.}
 \end{frame}
 
 %=====================================================================
@@ -518,35 +522,35 @@
     \node[code, anchor=north west] (c) at (0,0)
       {from sklearn.model\_selection import train\_test\_split\\[3pt]
        features = df[["StudyHours", "Attendance"]]\\
-       target\ \ \ = df["Result"]\\[3pt]
+       target\ \ \ = df["CGPA"]\\[3pt]
        X\_train, X\_test, y\_train, y\_test = train\_test\_split(\\
        \ \ \ \ features, target, test\_size=0.3, random\_state=6)};
     \lab{c}{CODE}
     \node[anchor=north west, text width=12.2cm, align=left, font=\footnotesize,
           text=ink, inner sep=0pt] at ([yshift=-0.55cm]c.south west)
       {\textbf{Line 1:} borrow the splitting tool from scikit-learn.\quad
-       \textbf{features / target:} name our inputs and our answer.\\[3pt]
-       \textbf{Last line:} set aside \cd{0.3} --- about a third --- as the hidden
-       test set. \cd{random\_state=6} just makes the split repeatable.};
+       \textbf{features / target:} name our inputs and our answer (CGPA, a number).\\[3pt]
+       \textbf{Last line:} set aside \cd{0.3} as the hidden test set.
+       \cd{random\_state=6} makes the split repeatable.};
   \end{tikzpicture}}
   \end{center}
   \vspace{0.4em}
   \begin{center}
   \begin{tikzpicture}[node distance=0.6cm]
     \node[soft, minimum width=4.2cm, font=\small] (a)
-      {\cd{X\_train, y\_train} --- 9 students};
+      {\cd{X\_train, y\_train} --- 56 students};
     \node[warm, right=of a, minimum width=4.2cm, font=\small] (b)
-      {\cd{X\_test, y\_test} --- 5 students};
+      {\cd{X\_test, y\_test} --- 24 students};
   \end{tikzpicture}
   \end{center}
   \note{%
     Read it as sentences, not code. ``Borrow the splitting tool.'' ``The features
-    are these two columns; the target is Result.'' ``Split them into a training
+    are these two columns; the target is CGPA.'' ``Split them into a training
     part and a testing part, keeping 30\% for testing.''\\
     \texttt{random\_state=6} is the only mysterious bit --- say plainly it just
     fixes which students land in which pile, so everyone running this gets the
     same split. Nothing deep.\\
-    Result: four names, two piles. 9 students to learn from, 5 hidden away. We
+    Result: four names, two piles. 56 students to learn from, 24 hidden away. We
     have not built anything yet --- just prepared the two piles.}
 \end{frame}
 
@@ -559,17 +563,17 @@
   \fitin{13.8cm}{4.7cm}{%
   \begin{tikzpicture}
     \node[code, anchor=north west] (c) at (0,0)
-      {from sklearn.tree import DecisionTreeClassifier\\[3pt]
-       model = DecisionTreeClassifier()\\
+      {from sklearn.tree import DecisionTreeRegressor\\[3pt]
+       model = DecisionTreeRegressor(max\_depth=3)\\
        model.fit(X\_train, y\_train)\ \ \ \ \ \ \textcolor{paper!55}{\# learn}\\[3pt]
-       model.score(X\_test, y\_test)\ \ \ \ \ \ \textcolor{paper!55}{\# check}};
+       model.score(X\_test, y\_test)\ \ \ \ \ \ \textcolor{paper!55}{\# R$^2$}};
     \lab{c}{CODE}
-    \node[out, anchor=north west, font=\ttfamily\Large, inner sep=9pt] (o)
-      at ([xshift=1.0cm]c.north east) {0.80};
-    \lab{o}{OUTPUT}
+    \node[output, anchor=north west, font=\ttfamily\Large, inner sep=9pt] (o)
+      at ([xshift=1.0cm]c.north east) {0.89};
+    \lab{o}{OUTPUT (R$^2$)}
     \node[anchor=north west, text width=3.3cm, align=left, font=\footnotesize,
           text=stone] at ([yshift=-0.3cm]o.south west)
-      {it got \textbf{4 of 5}\\ hidden students right};
+      {off by about \textbf{0.12}\\ CGPA on average};
   \end{tikzpicture}}
   \end{center}
   \vspace{0.4em}
@@ -577,42 +581,44 @@
   \begin{minipage}{12.8cm}\centering
     {\normalsize\color{ink}
      \cd{.fit()} is the model \textbf{learning} from the training students.\quad
-     \cd{.score()} is its mark on the \textbf{hidden} ones.}
+     \cd{.score()} is R$^2$ on the \textbf{hidden} ones --- 1.0 is perfect.}
   \end{minipage}
   \end{center}
   \note{%
     Three lines, three ideas.\\
-    \texttt{DecisionTreeClassifier()} --- ``give me an empty model of this kind''.
-    Do not explain the name yet; the next slide shows what it learned.\\
-    \texttt{model.fit(X\_train, y\_train)} --- this is the learning step. ``Look
-    at these 9 students and their results, and work out the pattern.'' This one
-    line is the whole of ``machine learning''.\\
-    \texttt{model.score(X\_test, y\_test)} --- ``now mark yourself on the 5
-    hidden students''. It got 0.80 --- four right out of five. Celebrate it, then
-    immediately ask: which one did it get wrong? That is the next slide, and it
-    is the interesting one.}
+    \texttt{DecisionTreeRegressor()} --- ``give me an empty model of this kind,
+    tuned for predicting numbers''. The \texttt{max\_depth=3} keeps it simple
+    enough to explain; without it the tree over-memorises on 56 students.\\
+    \texttt{model.fit(X\_train, y\_train)} --- the learning step. ``Look at
+    these 56 students and their CGPAs, work out the pattern.'' This one line is
+    the whole of ``machine learning''.\\
+    \texttt{model.score(X\_test, y\_test)} --- for a regressor this is R$^2$:
+    1.0 is perfect, 0 is no better than always guessing the mean, negative is
+    worse. We got 0.89 --- on average, the predicted CGPA is off by 0.12. That
+    is good; the next slide shows what being off by 0.12 actually looks like.}
 \end{frame}
 
 %=====================================================================
 % SLIDE 9 -- READING THE TEST RESULT                         (3 min)
 %=====================================================================
-\begin{frame}{What it got right --- and wrong}
+\begin{frame}{Close guesses --- and the worst miss}
   \vspace{0.3em}
   \begin{center}
   \fitin{13.8cm}{4.2cm}{%
     \sffamily\small\renewcommand{\arraystretch}{1.3}%
-    \setlength{\tabcolsep}{10pt}%
-    \begin{tabular}{llrrll}
+    \setlength{\tabcolsep}{9pt}%
+    \begin{tabular}{llrrrrr}
       \arrayrulecolor{terra}\toprule
       & \textbf{Student} & \textbf{Study} & \textbf{Att.} &
-        \textbf{Actual} & \textbf{Model said}\\
+        \textbf{Actual} & \textbf{Predicted} & \textbf{Error}\\
       \arrayrulecolor{ink!20}\midrule
-      & Oishi  & 3 & 85 & \pass & \pass \ {\footnotesize\color{sage!45!black}right}\\
-      & Karim  & 1 & 55 & \fail & \fail \ {\footnotesize\color{sage!45!black}right}\\
-      & Lima   & 6 & 85 & \pass & \pass \ {\footnotesize\color{sage!45!black}right}\\
-      & Nusrat & 7 & 90 & \pass & \pass \ {\footnotesize\color{sage!45!black}right}\\
+      & Siam Mollah   & 9 & 90 & 3.71 & 3.67 & \ {\footnotesize\color{sage!45!black}+0.04}\\
+      & Ayesha Khan   & 5 & 74 & 3.24 & 3.17 & \ {\footnotesize\color{sage!45!black}+0.07}\\
+      & Rahim Mollah  & 2 & 64 & 2.46 & 2.38 & \ {\footnotesize\color{sage!45!black}+0.08}\\
+      & Imran Rahman  & 3 & 76 & 2.85 & 2.77 & \ {\footnotesize\color{sage!45!black}+0.08}\\
+      \multicolumn{7}{c}{\color{stone}\footnotesize $\vdots$\ \ 19 more students, all within $\pm0.20$}\\
       \rowcolor{terra!10}
-      & Fahim  & 8 & 90 & \fail & \pass \ {\footnotesize\color{terra}\textbf{wrong}}\\
+      & Jannat Uddin  & 3 & 75 & 2.50 & 2.77 & \ {\footnotesize\color{terra}\textbf{$-$0.27}}\\
       \bottomrule
     \end{tabular}}
   \end{center}
@@ -620,24 +626,170 @@
   \begin{center}
   \begin{minipage}{12.6cm}\centering
     {\normalsize\color{ink}
-     Fahim studied 8 hours with 90\% attendance --- he \textit{looked} like a
-     pass. The model guessed Pass. He actually failed.}
+     Most guesses are within a tenth of a point. Jannat is the worst miss:
+     3 hours, 75\% attendance --- the model expected a 2.77 CGPA,
+     but she scored 2.50.}
   \end{minipage}
   \end{center}
   \note{%
     This is the honest heart of the lecture --- do not rush past it.\\
-    Four of the five hidden students: the model matched reality. Good.\\
-    Fahim is the lesson. On paper he looks like a strong student --- lots of
-    study, high attendance --- so the model, following the pattern, said Pass.
-    But he failed, for a reason not in our two columns (illness, stress,
+    Twenty-three of the twenty-four hidden students are within $\pm 0.20$ CGPA
+    of the truth --- usually much less. The mean absolute error is 0.12, which
+    on a 4.0 scale is tiny.\\
+    Jannat is the lesson. Her study hours and attendance look like a typical
+    mid-range student, so the model guessed 2.77. She actually scored 2.50 ---
+    0.27 below the guess, for a reason not in our two columns (illness, stress,
     a hard course --- we do not know). The model only knows what it was given.\\
-    Say it plainly: a model is a very good guess, never a certainty. It will be
-    wrong sometimes, and the wrong cases are often the most human ones. Hold
-    Fahim --- he comes back when we talk about the cost of a mistake.}
+    Say it plainly: a predicted number is a very good guess, never a certainty.
+    Being ``close'' is not the same as being ``right'' --- a 0.27 miss can be
+    the difference between a scholarship and no scholarship. Treat the number
+    as a hint for a human, not a verdict.}
 \end{frame}
 
 %=====================================================================
-% SLIDE 10 -- USE IT ON A NEW STUDENT                        (3 min)
+% SLIDE 10 -- SCORING A REGRESSOR: MAE AND R^2               (4 min)
+%=====================================================================
+\begin{frame}{How do we score a number guess?}
+  \vspace{0.1em}
+  \begin{columns}[T]
+    \begin{column}{6.4cm}
+      \begin{center}
+      {\sffamily\fontsize{8}{10}\selectfont\color{terra}\lsstyle
+       MEAN ABSOLUTE ERROR}
+      \end{center}
+      \vspace{0.1em}
+      \begin{center}
+        {\fontsize{14}{18}\selectfont
+         $\displaystyle \mathrm{MAE} \;=\; \tfrac{1}{n}\sum_{i=1}^{n}
+          \bigl| y_i - \hat{y}_i \bigr|$}
+      \end{center}
+      \vspace{0.1em}
+      \begin{center}
+      \begin{minipage}{5.8cm}
+        {\footnotesize\color{ink}
+         The \textbf{average size} of the miss, in target units. Lower is
+         better; 0 is perfect.\\[3pt]
+         {\color{stone}Our model: \textbf{0.12} --- CGPA is off by about
+          0.12 on average.}}
+      \end{minipage}
+      \end{center}
+    \end{column}
+    \begin{column}{6.8cm}
+      \begin{center}
+      {\sffamily\fontsize{8}{10}\selectfont\color{terra}\lsstyle
+       COEFFICIENT OF DETERMINATION (R$^2$)}
+      \end{center}
+      \vspace{0.1em}
+      \begin{center}
+        {\fontsize{13}{16}\selectfont
+         $\displaystyle R^{2} \;=\; 1 \;-\;
+          \frac{\sum_i (y_i - \hat{y}_i)^2}{\sum_i (y_i - \bar{y})^2}$}
+      \end{center}
+      \vspace{0.1em}
+      \begin{center}
+      \begin{minipage}{6.2cm}
+        {\footnotesize\color{ink}
+         How much \textbf{better than always guessing the mean} $\bar{y}$.
+         $1$ = perfect; $0$ = no better than the mean.\\[3pt]
+         {\color{stone}Our model: \textbf{0.89} --- closes 89\% of the gap
+          from mean-guess to perfect.}}
+      \end{minipage}
+      \end{center}
+    \end{column}
+  \end{columns}
+  \vspace{0.2em}
+  \begin{center}
+  \begin{minipage}{12.8cm}\centering
+    {\footnotesize\color{ink}
+     \textbf{MAE} tells you \textit{how far off}; \textbf{R$^2$} tells you
+     \textit{how useful}. Always report both.}
+  \end{minipage}
+  \end{center}
+  \note{%
+    This slide formalises the two numbers from the last two slides. Take it
+    slowly --- most of the class is meeting these metrics for the first time.\\
+    \textbf{MAE} is the friendly one. For each of the 24 hidden students, take
+    the error we just saw on the previous slide, drop the sign, and average.
+    That is 0.12 for us. The absolute value matters: without it, a $+0.20$ and
+    a $-0.20$ would cancel to zero and hide both mistakes.\\
+    \textbf{R$^2$} is less obvious but worth the minute. The denominator is the
+    error you would make by ignoring the features entirely and always guessing
+    the overall mean CGPA. The numerator is the error your actual model still
+    has. The ratio asks: ``how much of that baseline error did you remove?''
+    Subtract from 1, and you get a score between $-\infty$ and 1 where 1 is
+    perfect and 0 means you learned nothing. A negative R$^2$ is a model that
+    is worse than doing nothing --- rare, but possible with a badly misfit
+    model.\\
+    Why both? MAE is in the units you care about (``off by 0.12 CGPA'' --- a
+    manager understands that). R$^2$ is unitless and lets you compare different
+    models or different datasets on the same scale. Reporting only one is how
+    results get spun.}
+\end{frame}
+
+%=====================================================================
+% SLIDE 11 -- MAE: A WORKED EXAMPLE                          (3 min)
+%=====================================================================
+\begin{frame}{MAE on paper: five hidden students}
+  \vspace{0.1em}
+  \begin{center}
+  \fitin{13.8cm}{3.6cm}{%
+    \sffamily\footnotesize\renewcommand{\arraystretch}{1.2}%
+    \setlength{\tabcolsep}{10pt}%
+    \begin{tabular}{llrrrr}
+      \arrayrulecolor{terra}\toprule
+      $i$ & \textbf{Student} &
+          $y_i$ \textbf{(actual)} & $\hat{y}_i$ \textbf{(pred)} &
+          $y_i-\hat{y}_i$ & $|y_i-\hat{y}_i|$\\
+      \arrayrulecolor{ink!20}\midrule
+      1 & Siam Mollah   & 3.71 & 3.67 & $+0.04$ & 0.04\\
+      2 & Ayesha Khan   & 3.24 & 3.17 & $+0.07$ & 0.07\\
+      3 & Rahim Mollah  & 2.46 & 2.38 & $+0.08$ & 0.08\\
+      4 & Imran Rahman  & 2.85 & 2.77 & $+0.08$ & 0.08\\
+      \rowcolor{terra!10}
+      5 & Jannat Uddin  & 2.50 & 2.77 & $-0.27$ & 0.27\\
+      \arrayrulecolor{ink!20}\midrule
+      \multicolumn{5}{r}{\textbf{sum}\ \ $\sum |y_i-\hat{y}_i|$} & \textbf{0.54}\\
+      \bottomrule
+    \end{tabular}}
+  \end{center}
+  \vspace{0.2em}
+  \begin{center}
+    {\fontsize{13}{16}\selectfont
+     $\displaystyle \mathrm{MAE}
+        \;=\; \frac{1}{n}\sum_{i=1}^{n}\bigl|y_i-\hat{y}_i\bigr|
+        \;=\; \frac{0.54}{5}
+        \;=\; \mathbf{0.108}$}
+  \end{center}
+  \vspace{0.1em}
+  \begin{center}
+  \begin{minipage}{12.6cm}\centering
+    {\footnotesize\color{ink}
+     Without $|\,\cdot\,|$, Jannat's $-0.27$ would cancel the four $+$'s,
+     hiding both misses. Over all \textbf{24} hidden students the full MAE
+     is \textbf{0.12}.}
+  \end{minipage}
+  \end{center}
+  \note{%
+    This is the ``show me the arithmetic'' slide --- do it on the board, out
+    loud, so there is no mystery left in that 0.12.\\
+    Column by column: $y_i$ is what the student actually scored, $\hat{y}_i$
+    is what the model predicted, $y_i-\hat{y}_i$ is the raw error
+    (positive = we under-predicted, negative = we over-predicted), and the
+    last column drops the sign.\\
+    Add the last column: $0.04+0.07+0.08+0.08+0.27=0.54$. Divide by the
+    count $n=5$: $0.108$. That is the MAE for this tiny slice.\\
+    Why the absolute value matters: without it, the signed sum would be
+    $0.04+0.07+0.08+0.08-0.27 = 0.00$. A model that is 0.00 off on average,
+    yet half a point wrong on Jannat --- clearly nonsense. Taking the absolute
+    value before averaging stops positive and negative errors from erasing
+    each other.\\
+    The 0.12 at the bottom is the honest number from running MAE on \emph{all}
+    24 held-out students. Jannat's big miss pulls the average up; the other
+    students bring it back down. Same arithmetic, just more rows.}
+\end{frame}
+
+%=====================================================================
+% SLIDE 12 -- USE IT ON A NEW STUDENT                        (3 min)
 %=====================================================================
 \begin{frame}{Now use it on a brand-new student}
   \vspace{0.2em}
@@ -647,15 +799,15 @@
     % new student 1
     \node[code] (c1) {model.predict([[6, 85]])};
     \lab{c1}{A NEW STUDENT: 6 HOURS, 85\% ATTENDANCE}
-    \node[out, anchor=west, inner sep=7pt] (o1) at ([xshift=0.7cm]c1.east)
-      {['\pass']};
+    \node[output, anchor=west, inner sep=7pt] (o1) at ([xshift=0.7cm]c1.east)
+      {[{\color{sage!45!black}\textbf{3.17}}]};
     \draw[flow] (c1.east) -- (o1.west);
     % new student 2
     \node[code, anchor=north west] (c2) at ([yshift=-0.9cm]c1.south west)
       {model.predict([[2, 55]])};
     \lab{c2}{ANOTHER: 2 HOURS, 55\% ATTENDANCE}
-    \node[out, anchor=west, inner sep=7pt] (o2) at ([xshift=0.7cm]c2.east)
-      {['\fail']};
+    \node[output, anchor=west, inner sep=7pt] (o2) at ([xshift=0.7cm]c2.east)
+      {[{\color{terra}\textbf{2.38}}]};
     \draw[flow] (c2.east) -- (o2.west);
     \node[anchor=north west, text width=11.0cm, align=left, font=\footnotesize,
           text=stone, inner sep=0pt] at ([yshift=-0.7cm]c2.south west)
@@ -671,8 +823,8 @@
   \note{%
     The payoff moment --- this is what all the work was for.\\
     We hand the model a student described only by study hours and attendance,
-    someone not in our data. \texttt{predict} returns a guess instantly: the
-    6-hour, 85\% student --- Pass; the 2-hour, 55\% student --- Fail.\\
+    someone not in our data. \texttt{predict} returns a CGPA estimate instantly:
+    the 6-hour, 85\% student --- 3.17; the 2-hour, 55\% student --- 2.38.\\
     Connect to day one: this is precisely ``how YouTube knows'' --- it learned a
     pattern from millions of past viewers and applies it to you, a new viewer.
     Same idea, different data.\\
@@ -681,123 +833,92 @@
 \end{frame}
 
 %=====================================================================
-% SLIDE 11 -- WHAT DID IT LEARN?                             (3 min)
+% SLIDE 13 -- ONE RECIPE, MANY MODELS                        (4 min)
 %=====================================================================
-\setkick{Part 3 \textperiodcentered\ Trust and judgement}
-\begin{frame}{What did the model actually learn?}
+\setkick{Part 3 \textperiodcentered\ Beyond the decision tree}
+\begin{frame}{One recipe, many models}
+  \vspace{0.1em}
+  \begin{columns}[T]
+    \begin{column}{8.2cm}
+      \begin{tikzpicture}
+        \node[code, anchor=north west, text width=7.8cm,
+              font=\ttfamily\scriptsize] (c1) at (0,0)
+          {\textcolor{paper!55}{\# decision tree --- what we just built}\\
+           from sklearn.tree import DecisionTreeRegressor\\
+           model = DecisionTreeRegressor(max\_depth=3)};
+        \lab{c1}{ORIGINAL}
+
+        \node[code, anchor=north west, text width=7.8cm,
+              font=\ttfamily\scriptsize] (c2)
+          at ([yshift=-0.45cm]c1.south west)
+          {\textcolor{paper!55}{\# random forest --- many trees, average together}\\
+           from sklearn.ensemble import RandomForestRegressor\\
+           model = RandomForestRegressor()};
+        \lab{c2}{SWAP 1}
+
+        \node[code, anchor=north west, text width=7.8cm,
+              font=\ttfamily\scriptsize] (c3)
+          at ([yshift=-0.45cm]c2.south west)
+          {\textcolor{paper!55}{\# small neural network (MLP)}\\
+           from sklearn.neural\_network import MLPRegressor\\
+           model = MLPRegressor(hidden\_layer\_sizes=(16,8))};
+        \lab{c3}{SWAP 2}
+      \end{tikzpicture}
+    \end{column}
+    \begin{column}{5.0cm}
+      \vspace{0.1em}
+      \begin{center}
+      {\sffamily\fontsize{7.5}{9}\selectfont\color{terra}\lsstyle
+       SCORE ON THE SAME HIDDEN 24}
+      \end{center}
+      \vspace{0.3em}
+      \fitin{5.0cm}{4.0cm}{%
+        \sffamily\footnotesize\renewcommand{\arraystretch}{1.2}%
+        \setlength{\tabcolsep}{6pt}%
+        \begin{tabular}{lrr}
+          \arrayrulecolor{terra}\toprule
+          \textbf{Model} & \textbf{R$^2$} & \textbf{MAE}\\
+          \arrayrulecolor{ink!20}\midrule
+          Linear Regression         & 0.90 & 0.10\\
+          Decision Tree (d=3)       & 0.89 & 0.12\\
+          Random Forest             & 0.89 & 0.11\\
+          Gradient Boosting         & 0.84 & 0.13\\
+          $k$-Nearest Neighbors     & 0.78 & 0.15\\
+          MLP (neural net, scaled)  & 0.59 & 0.21\\
+          \bottomrule
+        \end{tabular}}
+    \end{column}
+  \end{columns}
   \vspace{0.3em}
-  \begin{center}
-  \fitin{13.8cm}{3.9cm}{%
-  \begin{tikzpicture}[node distance=1.0cm and 1.4cm]
-    \node[qnode] (q) {Is attendance\\ above 75\%?};
-    \node[leafF, below left=1.0cm and 1.1cm of q] (f) {Fail};
-    \node[leafP, below right=1.0cm and 1.1cm of q] (p) {Pass};
-    \draw[branch] (q.south) -- (f.north)
-      node[midway, above left=-1pt, font=\scriptsize, text=stone] {no};
-    \draw[branch] (q.south) -- (p.north)
-      node[midway, above right=-1pt, font=\scriptsize, text=stone] {yes};
-  \end{tikzpicture}}
-  \end{center}
-  \vspace{0.4em}
   \begin{center}
   \begin{minipage}{12.6cm}\centering
     {\normalsize\color{ink}
-     The model is just a \textbf{question}, learned from the data. It discovered
-     that \textbf{attendance} was the strongest clue --- the very warning sign
-     Lecture 1 predicted.}
+     Every scikit-learn model speaks the same two words:
+     \cd{.fit()} and \cd{.score()}.}
   \end{minipage}
   \end{center}
   \note{%
-    A ``decision tree'' is nothing more than a flowchart of yes/no questions ---
-    exactly the yes/no questions we asked in Lecture 3 when we wrote
-    \texttt{df["CGPA"] <= 4.0}. The difference: here the computer \emph{chose}
-    the question itself, from the data.\\
-    Our model learned one clean question: is attendance above 75\%? Above --
-    guess Pass; below -- guess Fail. That is why it misread Fahim (90\%
-    attendance, but failed anyway).\\
-    The lovely full-circle moment: in Lecture 1 we said attendance would probably
-    be the strongest early warning sign. We did not tell the model that --- it
-    worked it out on its own. That is the whole promise of the field in one
-    picture.}
-\end{frame}
-
-%=====================================================================
-% SLIDE 12 -- CAN WE TRUST IT? THE COST OF BEING WRONG       (4 min)
-%=====================================================================
-\begin{frame}{A wrong guess has a cost}
-  \vspace{0.3em}
-  \begin{center}
-  \fitin{13.8cm}{3.7cm}{%
-  \begin{tikzpicture}[node distance=0.7cm]
-    \node[card, text width=5.6cm, minimum height=2.2cm, align=left] (a)
-      {{\rmfamily\bfseries Mistake 1: false alarm}\\[4pt]
-       {\footnotesize Model says ``may struggle'',\\ student was actually fine.}\\[5pt]
-       {\color{stone}\footnotesize $\rightarrow$ they get help they did not\\ need. Mildly wasteful.}};
-    \node[card, text width=5.6cm, minimum height=2.2cm, align=left,
-          right=of a, fill=terra!8, draw=terra!40] (b)
-      {{\rmfamily\bfseries Mistake 2: a miss}\\[4pt]
-       {\footnotesize Model says ``fine'',\\ student actually struggled.}\\[5pt]
-       {\color{terra}\footnotesize $\rightarrow$ they get no help.\\ This is Fahim. Much worse.}};
-    \accentbar{a}{sage}\accentbar{b}{terra}
-  \end{tikzpicture}}
-  \end{center}
-  \vspace{0.5em}
-  \statement[12.8cm]{\fontsize{16}{22}\selectfont
-    ``80\% accurate'' is not the whole story.\\
-    \textbf{Which} mistakes it makes matters more.}
-  \note{%
-    Return to Lecture 1's two kinds of error, now with a face on each.\\
-    Mistake 1, a false alarm: we offer help to a student who was fine. A little
-    wasted effort, no harm done.\\
-    Mistake 2, a miss: we tell the teacher a struggling student is fine, so
-    nobody reaches out. That is Fahim --- the model said Pass, he failed, and in
-    a real system he would have slipped through. Much more costly.\\
-    So a single accuracy number hides the important question: of its mistakes,
-    how many are the dangerous kind? For helping students, you would rather the
-    model raise a few false alarms than miss someone. Accuracy alone never tells
-    you that --- human judgement decides which error you can live with.}
-\end{frame}
-
-%=====================================================================
-% SLIDE 13 -- A WORD ON FAIRNESS                             (3 min)
-%=====================================================================
-\begin{frame}{A model only repeats its data}
-  \vspace{0.4em}
-  \begin{center}
-  \fitin{13.8cm}{3.0cm}{%
-  \begin{tikzpicture}[node distance=1.0cm]
-    \node[card, minimum width=3.4cm, minimum height=1.1cm] (d) {Past data};
-    \node[warm, right=of d, minimum width=3.0cm, minimum height=1.1cm] (m) {Model};
-    \node[solid, right=of m, minimum width=3.4cm, minimum height=1.1cm] (p)
-      {Its predictions};
-    \draw[flow] (d) -- (m);
-    \draw[flow] (m) -- (p);
-    \node[tag, below=0.3cm of d, text width=3.4cm] {if this is biased\ldots};
-    \node[tag, below=0.3cm of p, text width=3.4cm] {\ldots so is this};
-  \end{tikzpicture}}
-  \end{center}
-  \vspace{0.6em}
-  \begin{center}
-  \begin{minipage}{12.6cm}
-    {\normalsize\color{ink}
-     A model copies the patterns in the data it was given. Feed it unfair or
-     biased history, and it will repeat that unfairness --- confidently.}\\[6pt]
-    {\color{stone}\footnotesize So: use features that are \textit{fair} and
-     relevant (study, attendance --- not religion, gender, or home district),
-     and never let a prediction be the final word about a person.}
-  \end{minipage}
-  \end{center}
-  \note{%
-    Short but important --- the course has raised ethics since Lecture 1, so close
-    the loop.\\
-    The core idea, in their words from Lecture 1: ``the model does not know
-    anything; it only repeats patterns it has seen''. If those patterns are
-    unfair, the model launders the unfairness into something that looks
-    objective because ``the computer said so''.\\
-    Two rules of thumb: choose features that are fair and actually relevant; and
-    keep a human in the loop --- a prediction flags who might need a
-    conversation, it never decides someone's fate. This is what separates a
-    responsible data scientist from a careless one.}
+    The point of this slide: once they can run one model, they can run them all.
+    scikit-learn's API is deliberately uniform --- change one import and one
+    class name, and the rest of the code stays byte-for-byte identical. For
+    regression, every class ends in \texttt{Regressor} instead of
+    \texttt{Classifier}; everything else is the same.\\
+    Three families, in plain words:\\
+    \textbf{Random Forest} --- grow many decision trees on slightly different
+    slices of the data and average their predictions. Usually more robust than
+    one tree.\\
+    \textbf{Gradient Boosting} --- build trees in sequence, each one fixing the
+    last one's mistakes. Often the winner on tabular data at scale.\\
+    \textbf{MLP} --- a small neural network: layers of neurons that learn their
+    own features. Powerful on images, speech, text --- overkill here, and on 56
+    training rows it actually underperforms (needs feature scaling and far more
+    data), which is the honest lesson.\\
+    Also worth noticing: plain \textbf{Linear Regression}, the simplest model
+    of all, wins on this data. The relationship between study/attendance and
+    CGPA is close to a straight line, and nothing beats a straight line when
+    the truth is a straight line.\\
+    Takeaway: more complex $\neq$ better. Match the model to the problem, and
+    always compare on the same hidden test set.}
 \end{frame}
 
 %=====================================================================
